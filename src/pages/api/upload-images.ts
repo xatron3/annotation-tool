@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { IncomingForm, File as FormidableFile } from "formidable";
 import fs from "fs";
 import path from "path";
+import { prisma } from "@/lib/prisma";
 
 // Disable Next.js's body parser so Formidable can handle multipart data
 export const config = {
@@ -52,16 +53,27 @@ export default async function handler(
     // Process each file
     const results: Uploaded[] = await Promise.all(
       fileList.map(async (file) => {
+        // Generate a unique filename for disk
+        const filename = `${Date.now()}-${file.originalFilename}`;
+        const destPath = path.join(uploadDir, filename);
+
+        // Read and write file to public/uploads
         const data = fs.readFileSync(file.filepath);
-        const id = `${Date.now()}-${file.originalFilename}`;
-        const destPath = path.join(uploadDir, id);
         fs.writeFileSync(destPath, data);
-        fs.unlinkSync(file.filepath); // remove temp file
+        fs.unlinkSync(file.filepath);
+
+        // Save metadata to SQLite via Prisma
+        const record = await prisma.image.create({
+          data: {
+            name: file.originalFilename || filename,
+            url: `/uploads/${filename}`,
+          },
+        });
 
         return {
-          id,
-          name: file.originalFilename || id,
-          url: `/uploads/${id}`,
+          id: record.id,
+          name: record.name,
+          url: record.url,
         };
       })
     );
