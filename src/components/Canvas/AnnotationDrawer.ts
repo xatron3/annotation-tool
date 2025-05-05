@@ -1,3 +1,4 @@
+// src/components/FabricCanvas/AnnotationDrawer.ts
 import * as fabric from "fabric";
 import { Annotation } from "@/types/Annotation";
 
@@ -8,11 +9,17 @@ export class AnnotationDrawer {
   private lines: fabric.Line[] = [];
   private previewLine?: fabric.Line;
   private label: string;
+  private onComplete: (anno: Annotation) => void;
   private closeThreshold = 10; // pixels
 
-  constructor(canvas: fabric.Canvas, label: string) {
+  constructor(
+    canvas: fabric.Canvas,
+    label: string,
+    onComplete: (anno: Annotation) => void
+  ) {
     this.canvas = canvas;
     this.label = label;
+    this.onComplete = onComplete;
     this.enable();
   }
 
@@ -29,33 +36,42 @@ export class AnnotationDrawer {
     this.clearPreview();
   }
 
-  private onMouseDown = (opt: fabric.TEvent) => {
+  private onMouseDown = (opt: fabric.IEvent<MouseEvent>) => {
     const pointer = this.canvas.getPointer(opt.e!);
     const point = new fabric.Point(pointer.x, pointer.y);
 
-    // If close to the first point and at least 3 points exist, finish drawing
+    // 1) If preview exists, clear it so next move will re-create from this new point
+    if (this.previewLine) {
+      this.canvas.remove(this.previewLine);
+      this.previewLine = undefined;
+    }
+
+    // 2) If closing the polygon, finish
     if (this.points.length >= 3 && this.isNearFirst(point)) {
       this.finishDrawing();
       return;
     }
 
-    // Add marker
+    // 3) Save the click
+    this.points.push(point);
+
+    // 4) Draw the small yellow handle
     const marker = new fabric.Circle({
-      left: point.x,
-      top: point.y,
+      left: point.x - 4,
+      top: point.y - 4,
       radius: 4,
-      fill: "yellow",
+      fill: "red",
       selectable: false,
       evented: false,
     });
     this.canvas.add(marker);
     this.markers.push(marker);
 
-    // Add line from last point to this point
-    if (this.points.length > 0) {
-      const prev = this.points[this.points.length - 1];
+    // 5) If there’s a previous point, draw a solid line to this one
+    if (this.points.length > 1) {
+      const prev = this.points[this.points.length - 2];
       const line = new fabric.Line([prev.x, prev.y, point.x, point.y], {
-        stroke: "yellow",
+        stroke: "red",
         strokeWidth: 2,
         selectable: false,
         evented: false,
@@ -63,23 +79,23 @@ export class AnnotationDrawer {
       this.canvas.add(line);
       this.lines.push(line);
     }
-
-    this.points.push(point);
   };
 
-  private onMouseMove = (opt: fabric.TEvent) => {
+  private onMouseMove = (opt: fabric.IEvent<MouseEvent>) => {
     if (this.points.length === 0) return;
     const pointer = this.canvas.getPointer(opt.e!);
+    // always grab the very last point you stored
     const last = this.points[this.points.length - 1];
 
-    // Draw or update preview line
     if (this.previewLine) {
+      // just update the end‐point
       this.previewLine.set({ x2: pointer.x, y2: pointer.y });
     } else {
+      // first time, create it from last → pointer
       this.previewLine = new fabric.Line(
         [last.x, last.y, pointer.x, pointer.y],
         {
-          stroke: "yellow",
+          stroke: "red",
           strokeWidth: 1,
           selectable: false,
           evented: false,
@@ -96,7 +112,7 @@ export class AnnotationDrawer {
     const first = this.points[0];
     const dx = p.x - first.x;
     const dy = p.y - first.y;
-    return Math.sqrt(dx * dx + dy * dy) < this.closeThreshold;
+    return Math.hypot(dx, dy) < this.closeThreshold;
   }
 
   private clearPreview() {
@@ -107,7 +123,7 @@ export class AnnotationDrawer {
   }
 
   private finishDrawing() {
-    // Remove markers and lines
+    // Remove helper objects
     this.markers.forEach((m) => this.canvas.remove(m));
     this.lines.forEach((l) => this.canvas.remove(l));
     this.clearPreview();
@@ -122,7 +138,7 @@ export class AnnotationDrawer {
     });
     this.canvas.add(poly);
 
-    // Calculate centroid
+    // Centroid for label
     const xs = this.points.map((p) => p.x);
     const ys = this.points.map((p) => p.y);
     const centroid = new fabric.Point(
@@ -130,7 +146,6 @@ export class AnnotationDrawer {
       ys.reduce((a, b) => a + b, 0) / ys.length
     );
 
-    // Add label
     const text = new fabric.Text(this.label, {
       left: centroid.x,
       top: centroid.y,
@@ -141,6 +156,13 @@ export class AnnotationDrawer {
     });
     this.canvas.add(text);
 
+    // Notify consumer
+    const annotation: Annotation = {
+      label: this.label,
+      points: this.points.map((p) => ({ x: p.x, y: p.y })),
+    };
+    this.onComplete(annotation);
+
     // Reset and disable
     this.points = [];
     this.markers = [];
@@ -148,7 +170,3 @@ export class AnnotationDrawer {
     this.disable();
   }
 }
-
-// Usage example:
-// const drawer = new AnnotationDrawer(canvas, 'my-label');
-// Clicking on canvas adds points, move shows preview, clicking near start closes polygon.

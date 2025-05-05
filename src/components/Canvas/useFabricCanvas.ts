@@ -1,12 +1,12 @@
-// src/components/FabricCanvas/useFabricCanvas.ts
 import React, { useEffect, useRef, useState } from "react";
 import * as fabric from "fabric";
 import { Annotation } from "@/types/Annotation";
 import { FabricCanvasProps } from "@/types/FabricCanvas";
-import { drawAnnotation, loadBackground } from "./canvasUtils";
+import { drawAnnotation, loadBackground } from "./utils";
+import { AnnotationDrawer } from "./AnnotationDrawer";
 
 /**
- * Custom hook to encapsulate Fabric.js setup and annotation logic.
+ * Custom hook to encapsulate Fabric.js setup and annotation logic, with full-screen canvas
  */
 export function useFabricCanvas({
   imageUrl,
@@ -15,104 +15,76 @@ export function useFabricCanvas({
 }: FabricCanvasProps) {
   const canvasRef = useRef<fabric.Canvas>();
   const canvasElRef = useRef<HTMLCanvasElement>(null);
+  const drawerRef = useRef<AnnotationDrawer | null>(null);
 
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [polygonPoints, setPolygonPoints] = useState<fabric.Point[]>([]);
   const [newAnnotations, setNewAnnotations] = useState<Annotation[]>([]);
+  const [dimensions, setDimensions] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
 
-  const CANVAS_WIDTH = 800;
-  const CANVAS_HEIGHT = 600;
+  // Update dimensions on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      const { innerWidth, innerHeight } = window;
+      setDimensions({ width: innerWidth, height: innerHeight });
+      if (canvasRef.current) {
+        canvasRef.current.setWidth(innerWidth);
+        canvasRef.current.setHeight(innerHeight);
+        canvasRef.current.renderAll();
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Initialize Fabric canvas and load image & existing annotations
   useEffect(() => {
     if (!canvasElRef.current) return;
+    // apply full-screen CSS to canvas element
+    canvasElRef.current.style.position = "absolute";
+    canvasElRef.current.style.top = "0";
+    canvasElRef.current.style.left = "0";
+    canvasElRef.current.style.width = "100vw";
+    canvasElRef.current.style.height = "100vh";
+
     const canvas = new fabric.Canvas(canvasElRef.current, {
       selection: false,
       backgroundColor: "rgba(0,0,0,0.03)",
     });
-    canvas.setWidth(CANVAS_WIDTH);
-    canvas.setHeight(CANVAS_HEIGHT);
+    canvas.setWidth(dimensions.width);
+    canvas.setHeight(dimensions.height);
     canvasRef.current = canvas;
 
-    loadBackground(canvas, imageUrl, CANVAS_WIDTH, CANVAS_HEIGHT, () => {
-      initialAnnotations.forEach((anno) => drawAnnotation(canvas, anno));
-    });
+    // load image and draw annotations
+    loadBackground(
+      canvas,
+      imageUrl,
+      dimensions.width,
+      dimensions.height,
+      () => {
+        initialAnnotations.forEach((anno) => drawAnnotation(canvas, anno));
+      }
+    );
 
     return () => canvas.dispose();
-  }, [imageUrl, initialAnnotations]);
+  }, [imageUrl, initialAnnotations, dimensions]);
 
-  // Register mouse-down for drawing points
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const handleMouseDown = (evt: fabric.IEvent<MouseEvent>) => {
-      if (!isDrawing) return;
-      const { x, y } = canvas.getPointer(evt.e);
-      const pt = new fabric.Point(x, y);
-      setPolygonPoints((pts) => [...pts, pt]);
-
-      const circle = new fabric.Circle({
-        left: x - 3,
-        top: y - 3,
-        radius: 3,
-        fill: "red",
-        selectable: false,
-        evented: false,
-        preview: true,
-      });
-      canvas.add(circle);
-    };
-
-    canvas.on("mouse:down", handleMouseDown);
-    return () => void canvas.off("mouse:down", handleMouseDown);
-  }, [isDrawing]);
-
-  // Live preview of the in-progress polygon
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    canvas.getObjects().forEach((obj) => {
-      if ((obj as any).preview) canvas.remove(obj);
-    });
-    if (polygonPoints.length < 2) return;
-    const previewPoly = new fabric.Polygon(polygonPoints, {
-      stroke: "red",
-      strokeWidth: 2,
-      fill: "rgba(255,0,0,0.2)",
-      selectable: false,
-      evented: false,
-    });
-    (previewPoly as any).preview = true;
-    canvas.add(previewPoly);
-  }, [polygonPoints]);
-
-  // Handlers
   const handleStart = () => {
-    setIsDrawing(true);
-    setPolygonPoints([]);
-  };
-  const handleClose = () => {
-    if (polygonPoints.length < 3)
-      return alert("You need at least 3 points to close a polygon.");
+    const canvas = canvasRef.current;
+    if (!canvas) return alert("Canvas is not ready");
     const label = prompt("Enter label for this shape:");
-    if (!label) {
-      resetDrawing();
-      return;
-    }
-    const newAnno: Annotation = {
+    if (!label) return;
+    drawerRef.current = new AnnotationDrawer(
+      canvas,
       label,
-      points: polygonPoints.map((p) => ({ x: p.x, y: p.y })),
-    };
-
-    const canvas = canvasRef.current!;
-    canvas.getObjects().forEach((obj) => {
-      if ((obj as any).preview) canvas.remove(obj);
-    });
-    drawAnnotation(canvas, newAnno);
-    setNewAnnotations((arr) => [...arr, newAnno]);
-    resetDrawing();
+      (anno: Annotation) => {
+        drawAnnotation(canvas, anno);
+        setNewAnnotations((arr) => [...arr, anno]);
+      }
+    );
   };
+
   const handleSave = async () => {
     if (!imageId) return alert("No imageId provided");
     try {
@@ -131,28 +103,30 @@ export function useFabricCanvas({
       alert("Error saving annotations");
     }
   };
+
   const handleReset = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     canvas.clear();
     setNewAnnotations([]);
-    resetDrawing();
-    loadBackground(canvas, imageUrl, CANVAS_WIDTH, CANVAS_HEIGHT, () => {
-      initialAnnotations.forEach((anno) => drawAnnotation(canvas, anno));
-    });
-  };
-  const resetDrawing = () => {
-    setIsDrawing(false);
-    setPolygonPoints([]);
+    drawerRef.current = null;
+    loadBackground(
+      canvas,
+      imageUrl,
+      dimensions.width,
+      dimensions.height,
+      () => {
+        initialAnnotations.forEach((anno) => drawAnnotation(canvas, anno));
+      }
+    );
   };
 
   return {
     canvasElRef,
     handleStart,
-    handleClose,
     handleSave,
     handleReset,
-    isDrawing,
+    isDrawing: !!drawerRef.current,
     hasNew: newAnnotations.length > 0,
   };
 }
