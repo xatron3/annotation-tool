@@ -18,6 +18,7 @@ Ensure you have the following installed:
 
 - [Node.js](https://nodejs.org/) (v16 or higher recommended)
 - [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
+- [Prisma CLI](https://www.prisma.io/docs/getting-started/quickstart)
 
 ### Installation
 
@@ -35,6 +36,20 @@ Ensure you have the following installed:
    # or
    yarn install
    ```
+
+3. Set up the database:
+
+   - Create a `.env` file in the root directory and add your database connection string:
+
+     ```env
+     DATABASE_URL="your-database-connection-string"
+     ```
+
+   - Run the Prisma migrations to set up the database schema:
+
+     ```bash
+     npx prisma migrate dev
+     ```
 
 ### Running the Development Server
 
@@ -122,6 +137,7 @@ To learn more about the technologies used in this project:
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Fabric.js Documentation](http://fabricjs.com/docs/)
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- [Prisma Documentation](https://www.prisma.io/docs)
 
 ## Contact
 
