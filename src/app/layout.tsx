@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Menu } from "lucide-react";
+import Header from "@/components/Layout/Header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,34 +30,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <main className="min-h-screen p-6 bg-gray-100">
-          <header className="mb-6 flex justify-between items-center container mx-auto">
-            <h1 className="text-2xl font-bold mb-4">AnnotatE</h1>
-            <nav>
-              <ul className="flex space-x-4">
-                <li>
-                  <Link href="/" className="text-blue-600 hover:underline">
-                    Home
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/annotate"
-                    className="text-blue-600 hover:underline"
-                  >
-                    Annotate
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/about" className="text-blue-600 hover:underline">
-                    About
-                  </Link>
-                </li>
-              </ul>
-            </nav>
-          </header>
+        <main className="min-h-screen bg-gray-100">
+          <Header />
 
-          <div className="container mx-auto">{children}</div>
+          <div className="container mx-auto px-2 md:px-0">{children}</div>
 
           <footer className="mt-6 text-center text-gray-500">
             &copy; {new Date().getFullYear()} Your Company Name
