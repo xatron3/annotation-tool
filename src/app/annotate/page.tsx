@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { UploadedImage } from "@/types/UploadImage";
 import { useState, useEffect } from "react";
 
-const FabricCanvas = dynamic(() => import("@/components/FabricCanvas"), {
+const FabricCanvas = dynamic(() => import("@/components/Canvas/FabricCanvas"), {
   ssr: false,
 });
 
