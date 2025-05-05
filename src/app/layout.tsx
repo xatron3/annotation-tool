@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -27,7 +28,39 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <main className="min-h-screen p-6 bg-gray-100">
+          <header className="mb-6 flex justify-between items-center container mx-auto">
+            <h1 className="text-2xl font-bold mb-4">AnnotatE</h1>
+            <nav>
+              <ul className="flex space-x-4">
+                <li>
+                  <Link href="/" className="text-blue-600 hover:underline">
+                    Home
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/annotate"
+                    className="text-blue-600 hover:underline"
+                  >
+                    Annotate
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/about" className="text-blue-600 hover:underline">
+                    About
+                  </Link>
+                </li>
+              </ul>
+            </nav>
+          </header>
+
+          <div className="container mx-auto">{children}</div>
+
+          <footer className="mt-6 text-center text-gray-500">
+            &copy; {new Date().getFullYear()} Your Company Name
+          </footer>
+        </main>
       </body>
     </html>
   );

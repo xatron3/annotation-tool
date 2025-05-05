@@ -18,6 +18,7 @@ export default async function handler(
         imageTags: {
           include: { tag: true },
         },
+        annotations: true, // Include annotations if needed
       },
     });
 
@@ -28,6 +29,7 @@ export default async function handler(
       url: img.url,
       createdAt: img.createdAt,
       tags: img.imageTags.map((it) => it.tag.name),
+      annotations: img.annotations,
     }));
 
     res.status(200).json(result);

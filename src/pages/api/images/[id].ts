@@ -13,23 +13,47 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid id" });
   }
 
+  // GET /api/images/[id]
+  if (req.method === "GET") {
+    try {
+      const record = await prisma.image.findUnique({
+        where: { id },
+        include: {
+          // if you have tags or other relations you want back:
+          imageTags: {
+            select: { tag: true },
+          },
+          annotations: true, // Include annotations if needed
+        },
+      });
+      if (!record) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+      return res.status(200).json(record);
+    } catch (err) {
+      console.error("GET error:", err);
+      return res.status(500).json({ error: "Could not fetch image" });
+    }
+  }
+
+  // DELETE /api/images/[id]
   if (req.method === "DELETE") {
     try {
-      // 1) Find record so we know the file URL
       const record = await prisma.image.findUnique({ where: { id } });
       if (!record) {
         return res.status(404).json({ error: "Not found" });
       }
 
-      // 2) Delete any ImageToTag join rows
       await prisma.imageToTag.deleteMany({
         where: { imageId: id },
       });
 
-      // 3) Delete the image row
+      await prisma.annotation.deleteMany({
+        where: { imageId: id },
+      });
+
       await prisma.image.delete({ where: { id } });
 
-      // 4) Delete the file from disk
       const filename = path.basename(record.url);
       const filePath = path.join(process.cwd(), "public", "uploads", filename);
       if (fs.existsSync(filePath)) {
@@ -45,6 +69,7 @@ export default async function handler(
     }
   }
 
-  res.setHeader("Allow", ["DELETE"]);
+  // Method not allowed
+  res.setHeader("Allow", ["GET", "DELETE"]);
   res.status(405).end(`Method ${req.method} Not Allowed`);
 }
