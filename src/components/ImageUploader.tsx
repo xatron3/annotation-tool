@@ -1,28 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import dynamic from "next/dynamic";
-import WaitingForAnnotation, {
-  UploadedImage,
-} from "@/components/WaitingForAnnotation";
-
-const FabricCanvas = dynamic(() => import("./FabricCanvas"), {
-  ssr: false,
-});
+import { useAnnotationStore } from "@/stores/annotation";
 
 export default function MultiImageUploader() {
   // Files picked but not yet uploaded
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
 
+  // Bump this to force the waiting list to re-fetch after upload
+  const bump = useAnnotationStore((state) => state.bump);
+
   // New: tag input (comma-separated)
   const [tagsInput, setTagsInput] = useState<string>("");
-
-  // Which image is currently open in the FabricCanvas
-  const [annotating, setAnnotating] = useState<UploadedImage | null>(null);
-
-  // bump this to force the waiting list to re-fetch after upload
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -65,7 +55,7 @@ export default function MultiImageUploader() {
     setFiles([]);
     setPreviews([]);
     setTagsInput("");
-    setRefreshTrigger((x) => x + 1);
+    bump(); // Trigger a refresh in the waiting list
   };
 
   return (
@@ -118,31 +108,6 @@ export default function MultiImageUploader() {
           </div>
         )}
       </div>
-
-      {/* Waiting for Annotation */}
-      <div className="border p-4 rounded">
-        <h3 className="text-lg font-semibold">Waiting for Annotation</h3>
-        <WaitingForAnnotation
-          onSelect={(img) => setAnnotating(img)}
-          refreshTrigger={refreshTrigger}
-        />
-      </div>
-
-      {/* Annotation canvas */}
-      {annotating && (
-        <div className="border p-4 rounded">
-          <h3 className="text-lg font-semibold">
-            Annotating: {annotating.name}
-          </h3>
-          <button
-            onClick={() => setAnnotating(null)}
-            className="mb-2 text-sm text-red-600 hover:underline"
-          >
-            Close
-          </button>
-          <FabricCanvas imageUrl={annotating.url} />
-        </div>
-      )}
     </div>
   );
 }

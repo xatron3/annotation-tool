@@ -2,13 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Trash2 } from "lucide-react";
-
-export type UploadedImage = {
-  id: string;
-  name: string;
-  url: string;
-  tags?: string[]; // new optional tags field
-};
+import { UploadedImage } from "@/types/UploadImage";
 
 interface WaitingProps {
   onSelect: (img: UploadedImage) => void;
