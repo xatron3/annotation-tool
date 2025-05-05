@@ -15,6 +15,9 @@ export default function MultiImageUploader() {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
 
+  // New: tag input (comma-separated)
+  const [tagsInput, setTagsInput] = useState<string>("");
+
   // Which image is currently open in the FabricCanvas
   const [annotating, setAnnotating] = useState<UploadedImage | null>(null);
 
@@ -42,6 +45,14 @@ export default function MultiImageUploader() {
     if (files.length === 0) return;
     const formData = new FormData();
     files.forEach((f) => formData.append("images", f));
+
+    // Attach tags as JSON array
+    const tagsArray = tagsInput
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => t);
+    formData.append("tags", JSON.stringify(tagsArray));
+
     const res = await fetch("/api/upload-images", {
       method: "POST",
       body: formData,
@@ -50,15 +61,16 @@ export default function MultiImageUploader() {
       console.error("Upload failed");
       return;
     }
-    // Clear local previews & bump the refresh
+    // Clear local previews, tags & bump the refresh
     setFiles([]);
     setPreviews([]);
+    setTagsInput("");
     setRefreshTrigger((x) => x + 1);
   };
 
   return (
     <div className="space-y-6">
-      {/* Upload section (unchanged) */}
+      {/* Upload section */}
       <div className="border p-4 rounded">
         <h3 className="text-lg font-semibold">Select Images to Upload</h3>
         <input
@@ -82,6 +94,21 @@ export default function MultiImageUploader() {
                 />
               ))}
             </div>
+
+            {/* Tags input for batch upload */}
+            <div className="mt-2">
+              <label className="block font-medium">
+                Tags (comma separated)
+              </label>
+              <input
+                type="text"
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                placeholder="nature, vacation"
+                className="mt-1 w-full border rounded px-2 py-1"
+              />
+            </div>
+
             <button
               onClick={handleUpload}
               className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -92,7 +119,7 @@ export default function MultiImageUploader() {
         )}
       </div>
 
-      {/* New: Waiting for Annotation */}
+      {/* Waiting for Annotation */}
       <div className="border p-4 rounded">
         <h3 className="text-lg font-semibold">Waiting for Annotation</h3>
         <WaitingForAnnotation

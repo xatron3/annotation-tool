@@ -11,10 +11,26 @@ export default async function handler(
   }
 
   try {
-    const images = await prisma.image.findMany({
+    // 1) Fetch images + join‐table + tag
+    const imagesWithTags = await prisma.image.findMany({
       orderBy: { createdAt: "desc" },
+      include: {
+        imageTags: {
+          include: { tag: true },
+        },
+      },
     });
-    res.status(200).json(images);
+
+    // 2) (Optional) Flatten to a simple tags array per image
+    const result = imagesWithTags.map((img) => ({
+      id: img.id,
+      name: img.name,
+      url: img.url,
+      createdAt: img.createdAt,
+      tags: img.imageTags.map((it) => it.tag.name),
+    }));
+
+    res.status(200).json(result);
   } catch (error) {
     console.error("Error fetching images:", error);
     res.status(500).json({ error: "Failed to fetch images" });

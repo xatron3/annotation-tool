@@ -7,9 +7,32 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// --- Explicit join model for Image ↔︎ Tag many-to-many ---
 model Image {
-  id         String   @id @default(cuid())
+  id         String        @id @default(cuid())
   name       String
   url        String
-  createdAt  DateTime @default(now())
+  createdAt  DateTime      @default(now())
+
+  // one-to-many into the join table
+  imageTags  ImageToTag[]
+}
+
+model Tag {
+  id         String        @id @default(cuid())
+  name       String        @unique
+  createdAt  DateTime      @default(now())
+
+  // one-to-many into the join table
+  imageTags  ImageToTag[]
+}
+
+model ImageToTag {
+  imageId  String
+  tagId    String
+
+  image    Image @relation(fields: [imageId], references: [id])
+  tag      Tag   @relation(fields: [tagId],   references: [id])
+
+  @@id([imageId, tagId])
 }

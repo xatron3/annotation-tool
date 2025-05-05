@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Trash2 } from "lucide-react"; // you can use any icon library
+import { Trash2 } from "lucide-react";
 
 export type UploadedImage = {
   id: string;
   name: string;
   url: string;
+  tags?: string[]; // new optional tags field
 };
 
 interface WaitingProps {
@@ -47,7 +48,6 @@ export default function WaitingForAnnotation({
       if (!res.ok && res.status !== 204) {
         throw new Error(await res.text());
       }
-      // Optimistically remove from UI
       setImages((imgs) => imgs.filter((i) => i.id !== id));
     } catch (err) {
       console.error("Delete failed:", err);
@@ -63,7 +63,7 @@ export default function WaitingForAnnotation({
   return (
     <div className="grid grid-cols-3 gap-4 mt-4">
       {images.map((img) => (
-        <div key={img.id} className="relative">
+        <div key={img.id} className="relative bg-white rounded shadow-sm p-2">
           <button
             onClick={() => handleDelete(img.id)}
             className="absolute top-1 right-1 bg-white bg-opacity-75 rounded-full p-1 hover:bg-opacity-100"
@@ -77,7 +77,19 @@ export default function WaitingForAnnotation({
               alt={img.name}
               className="w-full h-32 object-cover rounded border"
             />
-            <p className="truncate mt-1 text-sm">{img.name}</p>
+            <p className="truncate mt-2 text-sm font-medium">{img.name}</p>
+            {img.tags && img.tags.length > 0 && (
+              <div className="mt-1 flex flex-wrap gap-1">
+                {img.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       ))}
