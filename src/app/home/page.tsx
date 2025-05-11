@@ -1,5 +1,11 @@
 "use client";
 
+import { AuthButton } from "@/components/AuthButton";
+
 export default function Home() {
-  return <div>Home</div>;
+  return (
+    <div>
+      <AuthButton />
+    </div>
+  );
 }
