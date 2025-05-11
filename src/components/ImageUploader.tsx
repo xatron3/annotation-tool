@@ -1,18 +1,12 @@
-"use client";
-
 import { useState } from "react";
 import { useAnnotationStore } from "@/stores/annotation";
 
 export default function MultiImageUploader() {
-  // Files picked but not yet uploaded
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-
-  // Bump this to force the waiting list to re-fetch after upload
-  const bump = useAnnotationStore((state) => state.bump);
-
-  // New: tag input (comma-separated)
   const [tagsInput, setTagsInput] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
+  const bump = useAnnotationStore((state) => state.bump);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -32,35 +26,52 @@ export default function MultiImageUploader() {
   };
 
   const handleUpload = async () => {
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      setError("Please select at least one image.");
+      return;
+    }
+
+    setError(null); // clear previous errors
     const formData = new FormData();
     files.forEach((f) => formData.append("images", f));
 
-    // Attach tags as JSON array
     const tagsArray = tagsInput
       .split(",")
       .map((t) => t.trim())
       .filter((t) => t);
     formData.append("tags", JSON.stringify(tagsArray));
 
-    const res = await fetch("/api/upload-images", {
-      method: "POST",
-      body: formData,
-    });
-    if (!res.ok) {
-      console.error("Upload failed");
-      return;
+    try {
+      const res = await fetch("/api/upload-images", {
+        method: "POST",
+        body: formData,
+      });
+
+      // parse JSON (may throw)
+      const payload = await res.json();
+
+      if (!res.ok) {
+        // show the server’s error message, or fallback if missing
+        setError(payload.error || "Upload failed. Please try again.");
+        console.error("Upload error:", payload.error);
+        return;
+      }
+
+      // success!
+      setFiles([]);
+      setPreviews([]);
+      setTagsInput("");
+      bump();
+    } catch (err: any) {
+      console.error("Network or parsing error:", err);
+      setError(
+        "Network error: unable to upload. Please check your connection."
+      );
     }
-    // Clear local previews, tags & bump the refresh
-    setFiles([]);
-    setPreviews([]);
-    setTagsInput("");
-    bump(); // Trigger a refresh in the waiting list
   };
 
   return (
     <div className="space-y-6">
-      {/* Upload section */}
       <div className="border p-4 rounded">
         <h3 className="text-lg font-semibold">Select Images to Upload</h3>
         <input
@@ -71,6 +82,8 @@ export default function MultiImageUploader() {
           className="mt-2"
         />
 
+        {error && <p className="mt-2 text-red-600 font-medium">{error}</p>}
+
         {previews.length > 0 && (
           <div className="mt-4 space-y-2">
             <h4 className="font-medium">Preview ({previews.length})</h4>
@@ -79,7 +92,6 @@ export default function MultiImageUploader() {
                 <img
                   key={i}
                   src={src}
-                  alt={`preview-${i}`}
                   className="w-24 h-24 object-cover rounded border"
                 />
               ))}
@@ -98,12 +110,12 @@ export default function MultiImageUploader() {
                 className="mt-1 w-full border rounded px-2 py-1"
               />
             </div>
-
             <button
               onClick={handleUpload}
               className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
-              Upload {files.length} Image{files.length > 1 ? "s" : ""}
+              Upload {files.length} Image
+              {files.length > 1 ? "s" : ""}
             </button>
           </div>
         )}

@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Menu } from "lucide-react";
+import { Menu, ChevronDown } from "lucide-react";
 import Button from "@/components/ui/button";
+import { useSession, signIn, signOut } from "next-auth/react";
+import { usePathname } from "next/navigation";
 
 const NAV_LINKS = [
   { name: "Home", href: "/" },
@@ -13,7 +15,31 @@ const NAV_LINKS = [
 
 export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const { data: session } = useSession();
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const bgGradient = "bg-gradient-to-b from-blue-600 to-slate-600";
+
+  const pathname = usePathname();
+
+  // whenever the URL path changes, close the menu
+  useEffect(() => {
+    setProfileOpen(false);
+  }, [pathname]);
+
+  // close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   return (
     <aside
@@ -58,6 +84,53 @@ export default function Sidebar() {
           </Link>
         </nav>
       )}
+
+      {/* Profile menu in footer */}
+      <div className="mt-auto px-6 py-4">
+        {session ? (
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setProfileOpen((open) => !open)}
+              className="flex items-center w-full focus:outline-none"
+            >
+              <img
+                src={session.user?.image || "/default-avatar.png"}
+                alt="User avatar"
+                className="w-9 h-9 rounded-full border-2 border-white"
+              />
+              <div className="ml-3 text-left flex-1">
+                <p className="text-sm font-medium">{session.user?.name}</p>
+              </div>
+              <ChevronDown size={20} />
+            </button>
+
+            {profileOpen && (
+              <div className="absolute bottom-full mb-2 left-0 w-full bg-white text-gray-800 rounded-lg shadow-lg py-2">
+                <Link
+                  href="/profile"
+                  className="block px-4 py-2 hover:bg-gray-100"
+                >
+                  Profile
+                </Link>
+                <Link
+                  href="/profile/settings"
+                  className="block px-4 py-2 hover:bg-gray-100"
+                >
+                  Settings
+                </Link>
+                <button
+                  onClick={() => signOut()}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Button onClick={() => signIn()}>Sign In</Button>
+        )}
+      </div>
     </aside>
   );
 }
