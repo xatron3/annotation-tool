@@ -4,12 +4,18 @@ import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { UploadedImage } from "@/types/UploadImage";
 import { useState, useEffect } from "react";
+import AnnotationBoard from "@/components/AnnotationOverview/AnnotationBoard";
+import { useAnnotationStore } from "@/stores/annotation";
+import { useRouter } from "next/navigation";
 
 const FabricCanvas = dynamic(() => import("@/components/Canvas/FabricCanvas"), {
   ssr: false,
 });
 
 export default function AnnotatePage() {
+  const router = useRouter();
+  // Bump this to force the waiting list to re-fetch after upload
+  const refreshTrigger = useAnnotationStore((state) => state.refreshTrigger);
   const searchParams = useSearchParams();
   const imageId = searchParams.get("id");
   const [imageData, setImageData] = useState<UploadedImage>({
@@ -32,7 +38,19 @@ export default function AnnotatePage() {
 
   if (!imageId) {
     return (
-      <div className="p-4 text-center">No image specified for annotation.</div>
+      <div className="text-center">
+        {/* Waiting for Annotation */}
+        <div className="border p-4 rounded">
+          <h3 className="text-lg font-semibold mb-2">Waiting for Annotation</h3>
+          <AnnotationBoard
+            onSelect={(img: UploadedImage) => {
+              // push just the id
+              router.push(`/annotate?id=${img.id}`);
+            }}
+            refreshTrigger={refreshTrigger}
+          />
+        </div>
+      </div>
     );
   }
 

@@ -3,14 +3,16 @@ import { NextApiRequest, NextApiResponse } from "next";
 import fs from "fs";
 import path from "path";
 import { prisma } from "@/lib/prisma";
+import { parseQueryParamAsInt } from "@/lib/query";
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const { id } = req.query;
-  if (typeof id !== "string") {
-    return res.status(400).json({ error: "Invalid id" });
+  const id = parseQueryParamAsInt(req, res, "id");
+
+  if (id === null) {
+    return res.status(400).json({ error: "Invalid ID" });
   }
 
   // GET /api/images/[id]
@@ -19,7 +21,6 @@ export default async function handler(
       const record = await prisma.image.findUnique({
         where: { id },
         include: {
-          // if you have tags or other relations you want back:
           imageTags: {
             select: { tag: true },
           },

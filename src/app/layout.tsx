@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Menu } from "lucide-react";
-import Header from "@/components/Layout/Header";
+import Sidebar from "@/components/Layout/Sidebar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,15 +28,23 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <main className="min-h-screen bg-gray-100">
-          <Header />
+        <div className="flex min-h-screen">
+          {/* Sidebar */}
+          <Sidebar />
 
-          <div className="container mx-auto px-2 md:px-0">{children}</div>
+          {/* Main content area */}
+          <main className="flex flex-col flex-1 bg-gray-100 p-6">
+            {/* Content grows to fill available space */}
+            <div className="flex-1 container mx-auto px-2 md:px-0">
+              {children}
+            </div>
 
-          <footer className="mt-6 text-center text-gray-500">
-            &copy; {new Date().getFullYear()} Your Company Name
-          </footer>
-        </main>
+            {/* Footer sticks to bottom when content is short */}
+            <footer className="text-center text-gray-500">
+              &copy; {new Date().getFullYear()} Your Company Name
+            </footer>
+          </main>
+        </div>
       </body>
     </html>
   );
