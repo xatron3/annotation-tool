@@ -1,6 +1,6 @@
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -9,7 +9,7 @@ generator client {
 
 // --- Explicit join model for Image ↔︎ Tag many-to-many ---
 model Image {
-  id        String   @id @default(cuid())
+  id        Int      @id @default(autoincrement())
   name      String
   url       String
   createdAt DateTime @default(now())
@@ -20,7 +20,7 @@ model Image {
 }
 
 model Tag {
-  id        String   @id @default(cuid())
+  id        Int      @id @default(autoincrement())
   name      String   @unique
   createdAt DateTime @default(now())
 
@@ -29,8 +29,8 @@ model Tag {
 }
 
 model ImageToTag {
-  imageId String
-  tagId   String
+  imageId Int
+  tagId   Int
 
   image Image @relation(fields: [imageId], references: [id])
   tag   Tag   @relation(fields: [tagId], references: [id])
@@ -39,9 +39,9 @@ model ImageToTag {
 }
 
 model Annotation {
-  id      String @id @default(cuid())
+  id      Int    @id @default(autoincrement())
   label   String
   points  Json // store array of {x,y}
   image   Image  @relation(fields: [imageId], references: [id])
-  imageId String
+  imageId Int
 }

@@ -1,6 +1,7 @@
 // pages/api/annotations/[imageId].ts
 import { NextApiRequest, NextApiResponse } from "next";
 import { PrismaClient } from "@prisma/client";
+import { parseQueryParamAsInt } from "@/lib/query";
 
 const prisma = new PrismaClient();
 
@@ -8,7 +9,12 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const { imageId } = req.query;
+  const imageId = parseQueryParamAsInt(req, res, "imageId");
+
+  if (imageId === null) {
+    return res.status(400).json({ error: "Invalid ID" });
+  }
+
   if (req.method === "POST") {
     const {
       annotations,
@@ -17,11 +23,6 @@ export default async function handler(
     } = req.body;
 
     try {
-      // 1) Optionally clear old ones:
-      await prisma.annotation.deleteMany({
-        where: { imageId: String(imageId) },
-      });
-
       // 2) Bulk create new ones
       await Promise.all(
         annotations.map((anno) =>
@@ -29,7 +30,7 @@ export default async function handler(
             data: {
               label: anno.label,
               points: anno.points,
-              image: { connect: { id: String(imageId) } },
+              image: { connect: { id: imageId } },
             },
           })
         )

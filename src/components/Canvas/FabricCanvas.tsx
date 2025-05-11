@@ -4,11 +4,18 @@ import React, { useState } from "react";
 import CanvasControls from "./Controls";
 import { useFabricCanvas } from "./useFabricCanvas";
 import { FabricCanvasProps } from "@/types/FabricCanvas";
+import { useRouter } from "next/navigation";
 
 export default function FabricCanvas(props: FabricCanvasProps) {
+  const router = useRouter();
   const { canvasElRef, handleStart, handleSave, handleReset, hasNew } =
     useFabricCanvas(props);
   const [isOpen, setIsOpen] = useState(true);
+
+  const setIsOpenHandler = (open: boolean) => {
+    router.push("/annotate");
+    setIsOpen(open);
+  };
 
   if (!isOpen) return null;
 
@@ -19,7 +26,7 @@ export default function FabricCanvas(props: FabricCanvasProps) {
       <div className="relative bg-white p-6 rounded-2xl shadow-xl max-w-[90vw] max-h-[90vh] overflow-hidden">
         {/* Close Button */}
         <button
-          onClick={() => setIsOpen(false)}
+          onClick={() => setIsOpenHandler(false)}
           className="absolute top-4 right-4 text-gray-600 hover:text-gray-900 text-lg"
           aria-label="Close"
         >
