@@ -63,6 +63,12 @@ yarn dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser to view the app.
 
+### Prism
+
+npx prisma migrate dev --name <migration_name>
+
+npx prisma generate
+
 ### Building for Production
 
 To build the app for production:

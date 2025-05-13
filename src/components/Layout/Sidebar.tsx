@@ -8,7 +8,7 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 
 const NAV_LINKS = [
-  { name: "Home", href: "/" },
+  { name: "Dashboard", href: "/dashboard" },
   { name: "Images", href: "/upload-images" },
   { name: "Annotate", href: "/annotate" },
 ];

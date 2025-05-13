@@ -19,8 +19,33 @@ model Image {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // relations
-  imageTags   ImageToTag[]
-  annotations Annotation[]
+  imageTags    ImageToTag[]
+  annotations  Annotation[]
+  ImageToLabel ImageToLabel[]
+}
+
+model Label {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+
+  // Ownership: each label is created by a User
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // relations
+  imageLabels ImageToLabel[]
+  ImageToTag  ImageToTag[]
+}
+
+model ImageToLabel {
+  imageId Int
+  labelId Int
+
+  image Image @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([imageId, labelId])
 }
 
 model Tag {
@@ -39,8 +64,10 @@ model ImageToTag {
   imageId Int
   tagId   Int
 
-  image Image @relation(fields: [imageId], references: [id], onDelete: Cascade)
-  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  image   Image  @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  tag     Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  Label   Label? @relation(fields: [labelId], references: [id])
+  labelId Int?
 
   @@id([imageId, tagId])
 }
@@ -66,6 +93,7 @@ model User {
 
   accounts Account[]
   sessions Session[]
+  Label    Label[]
 }
 
 model Account {

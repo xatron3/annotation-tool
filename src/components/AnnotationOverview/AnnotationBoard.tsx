@@ -90,7 +90,6 @@ export default function AnnotationBoard({
 
   if (loading) return <p>Loading images…</p>;
   if (error) return <p className="text-red-600">Error: {error}</p>;
-  if (filteredImages.length === 0) return <p>No images found.</p>;
 
   return (
     <>

@@ -1,12 +1,16 @@
 "use client";
 
 import { signIn, signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export function AuthButton() {
   const { data: session } = useSession();
-  console.log("Session data:", session);
 
   if (session) {
+    // Push route to the da
+    const router = useRouter();
+    router.push("/dashboard");
+
     return (
       <>
         <img
